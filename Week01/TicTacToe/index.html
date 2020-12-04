@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tic-tac-toe</title>
+  <style>
+    .box {
+      display: flex;
+    }
+    .cell {
+      display: inline-block;
+      width: 100px;
+      height: 100px;
+      vertical-align: middle;
+      background-color: grey;
+      border: 1px solid black;
+      box-sizing: border-box;
+      font-size: 50px;
+      text-align: center;
+      line-height: 100px;
+    }
+    #current {
+      margin-left: 20px;
+    }
+    #restart {
+      margin: 20px;
+    }
+    #winner {
+      visibility: hidden;
+      font-size: 28px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div id="board">
+      正在绘制棋盘...
+    </div>
+    <div>
+      <div>
+        当前棋手：<span id="current"></span>
+      </div>
+      <div id="winner"></div>
+      <button id="restart">
+        开始游戏
+      </button>
+    </div>
+  </div>
+</body>
+<script>
+  // 棋盘边长
+  let size = 2;
+  // 棋盘数据
+  let pattern = new Array(size * size).fill(0);
+  let status = 0;
+  let currentUser = 0;
+  const blocker = (e) => {
+    e.stopPropagation();
+  };
+
+  const board = document.getElementById('board');
+  board.addEventListener('click', blocker, true);
+  
+  const current = document.getElementById('current');
+  const winner = document.getElementById('winner');
+
+  const restart = document.getElementById('restart');
+  restart.addEventListener('click', () => {
+    pattern = new Array(size * size).fill(0);
+    status = 1;
+    start();
+  });
+
+  draw();
+
+  // 清除画布
+  function clear() {
+    board.innerHTML = "";
+  }
+
+  // 绘制
+  function draw() {
+    clear();
+    for(let i = 0; i < size; i++) {
+      for(let j = 0; j < size; j++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.innerText = pattern[i * size + j] === 2 ? '⭕️' :
+          pattern[i * size + j] === 1 ? '❌' : '';
+        cell.addEventListener('click', () => userMove(i, j));
+        board.appendChild(cell);
+      }
+      board.appendChild(document.createElement('br'));
+    }
+  };
+
+  // 判断是否获胜
+  function checkWin(pattern, user) {
+    // 判断n * n是否存在一行一列两斜线相同O(n^2 + n)
+    const col = new Array(size).fill(0),
+      row = new Array(size).fill(0);
+    let lt2rb = 0, rt2lb = 0;
+    for(let i = 0; i < size; i++) {
+      for(let j = 0; j < size; j++) {
+        if (pattern[i * size + j] === user) {
+          col[i]++;
+          row[j]++;
+          if (i === j) {
+            lt2rb++;
+          }
+          if (i + j === size - 1) {
+            rt2lb++;
+          }
+        }
+      }
+    }
+    for(let i = 0; i < size; i++) {
+      if (col[i] === size || row[i] === size || lt2rb === size || rt2lb === size) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function clone(pattern) {
+    return Object.create(pattern);
+  }
+
+  function willWin(pattern, user) {
+    for(let i = 0; i < size; i++) {
+      for(let j = 0; j < size; j++) {
+        if (pattern[i * size + j]) continue;
+        let temp = clone(pattern);
+        temp[i * size + j] = user;
+        if (checkWin(temp, user)) {
+          return [i, j];
+        }
+      }
+    }
+    return null;
+  }
+
+  function bestNextStep(pattern, user) {
+    // 1 = 胜|0 = 平|-1 = 负
+    let step;
+    if (step = willWin(pattern, user)) {
+      return {
+        step,
+        result: 1
+      };
+    }
+    let result = -2;
+    let point = null
+    outer:for(let i = 0; i < size; i++) {
+      for(let j = 0; j < size; j++) {
+        if (pattern[i * size + j]) continue;
+        let temp = clone(pattern);
+        temp[i * size + j] = user;
+        let r = bestNextStep(temp, 2 / user).result;
+
+        if (-r > result) {
+          result = -r;
+          point = [i, j];
+        }
+        if (result === 1) {
+          break outer;
+        }
+      }
+    }
+    return {
+      step: point,
+      result: point ? result : 0,
+    }
+  }
+
+  function move(x, y, cb) {
+    if (!pattern[x * size + y]) {
+      pattern[x * size + y] = currentUser;
+      draw();
+      const wined = checkWin(pattern, currentUser);
+      if (wined) {
+        end(true);
+        return;
+      }
+      setCurrent(2 / currentUser);
+      cb && cb();
+    }
+    if (pattern.every((p) => !!p)) {
+      end();
+      return;
+    }
+  }
+
+  function AIMove() {
+    let step = bestNextStep(pattern, currentUser).step;
+    if(step) {
+      move(step[0], step[1]);
+    }
+  }
+
+  // 下棋
+  function userMove(x, y) {
+    move(x, y, AIMove);
+    // console.log(bestNextStep(pattern, currentUser));
+  }
+
+  function setCurrent(cur) {
+    currentUser = cur;
+    current.innerHTML = ['', '❌', '⭕️'][currentUser];
+  }
+
+  // 开始游戏
+  function start() {
+    board.removeEventListener('click', blocker, true);
+    setCurrent(1);
+    draw();
+    restart.style.display = 'none';
+    restart.innerHTML = '重新开始';
+    winner.innerHTML = '';
+    winner.style.visibility = 'hidden';
+  }
+
+  // 游戏结束
+  function end(win) {
+    board.addEventListener('click', blocker, true);
+    restart.style.display = 'block';
+    if (win) {
+      winner.innerHTML = ['', '❌', '⭕️'][currentUser] + ' win the game!';
+      winner.style.visibility = 'unset';
+    } else {
+      winner.innerHTML = '平局';
+      winner.style.visibility = 'unset';
+    }
+  }
+
+</script>
+</html>
