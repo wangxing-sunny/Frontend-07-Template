@@ -10,15 +10,15 @@
     }
     .cell {
       display: inline-block;
-      width: 100px;
-      height: 100px;
+      width: 50px;
+      height: 50px;
       vertical-align: middle;
       background-color: grey;
       border: 1px solid black;
       box-sizing: border-box;
-      font-size: 50px;
+      font-size: 25px;
       text-align: center;
-      line-height: 100px;
+      line-height: 50px;
     }
     #current {
       margin-left: 20px;
@@ -50,7 +50,9 @@
 </body>
 <script>
   // 棋盘边长
-  let size = 2;
+  //! TODO 4以上需要考虑算力问题: 计算深度
+  let size = 3;
+  let winSize = 5;
   // 棋盘数据
   let pattern = new Array(size * size).fill(0);
   let status = 0;
@@ -141,27 +143,33 @@
     return null;
   }
 
-  function bestNextStep(pattern, user) {
+  // depth深度
+  function bestNextStep(depth, pattern, user) {
     // 1 = 胜|0 = 平|-1 = 负
-    let step;
-    if (step = willWin(pattern, user)) {
+    if (!depth) {
+      return {
+        result: 0,
+        step: null,
+      }
+    }
+    let step = willWin(pattern, user);
+    if (step) {
       return {
         step,
         result: 1
       };
     }
-    let result = -2;
-    let point = null
-    outer:for(let i = 0; i < size; i++) {
+    let result = -1;
+    outer: for(let i = 0; i < size; i++) {
       for(let j = 0; j < size; j++) {
         if (pattern[i * size + j]) continue;
         let temp = clone(pattern);
         temp[i * size + j] = user;
-        let r = bestNextStep(temp, 2 / user).result;
+        let r = bestNextStep(depth - 1, temp, 2 / user).result;
 
-        if (-r > result) {
+        if (-r >= result) {
           result = -r;
-          point = [i, j];
+          step = [i, j];
         }
         if (result === 1) {
           break outer;
@@ -169,8 +177,8 @@
       }
     }
     return {
-      step: point,
-      result: point ? result : 0,
+      step,
+      result: step ? result : 0,
     }
   }
 
@@ -193,7 +201,7 @@
   }
 
   function AIMove() {
-    let step = bestNextStep(pattern, currentUser).step;
+    let step = bestNextStep(2, pattern, currentUser).step;
     if(step) {
       move(step[0], step[1]);
     }

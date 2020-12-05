@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    .light {
+      display: flex;
+    }
+    .light div {
+      width: 100px;
+      height: 100px;
+      margin: 30px;
+      border-radius: 50px;
+      background-color: grey;
+    }
+    .red.on {
+      background-color: red;
+    }
+    .yellow.on {
+      background-color: yellow;
+    }
+    .green.on {
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+  <div>回调</div>
+  <div class="light light-cb">
+    <div class="green"></div>
+    <div class="yellow"></div>
+    <div class="red"></div>
+  </div>
+  <div>promise</div>
+  <div class="light light-promise">
+    <div class="green"></div>
+    <div class="yellow"></div>
+    <div class="red"></div>
+  </div>
+  <div>async-await</div>
+  <div class="light light-asyncawait">
+    <div class="green"></div>
+    <div class="yellow"></div>
+    <div class="red"></div>
+  </div>
+  <div>generator</div>
+  <div class="light light-generator">
+    <div class="green"></div>
+    <div class="yellow"></div>
+    <div class="red"></div>
+  </div>
+</body>
+<script>
+  function red(el) {
+    const on = el.querySelector('.on');
+    if (on) {
+      on.classList.remove('on');
+    }
+    el.querySelector('.red').classList.add('on');
+  }
+  function yellow(el) {
+    const on = el.querySelector('.on');
+    if (on) {
+      on.classList.remove('on');
+    }
+    el.querySelector('.yellow').classList.add('on');
+  }
+  function green(el) {
+    const on = el.querySelector('.on');
+    if (on) {
+      on.classList.remove('on');
+    }
+    el.querySelector('.green').classList.add('on');
+  }
+
+  function go(method) {
+    el = document.querySelector('.light-' + method);
+    switch (method) {
+      case 'cb':
+        cb(el);
+        break;
+      case 'promise':
+        promise(el);
+        break;
+      case 'asyncawait':
+        asyncawait(el);
+        break;
+      case 'generator':
+        generator(el);
+        break;
+      
+    }
+  }
+
+  function cb(el) {
+    green(el);
+    setTimeout(() => {
+      yellow(el);
+      setTimeout(() => {
+        red(el);
+        setTimeout(() => {
+          cb(el);
+        }, 2500);
+      }, 1000);
+    }, 5000);
+  }
+
+  function sleep(time) {
+    return new Promise((res) => {
+      setTimeout(() => res(), time);
+    });
+  }
+
+  function promise(el) {
+    green(el);
+    sleep(5000).then(() => {
+      yellow(el);
+      return sleep(1000);
+    }).then(() => {
+      red(el);
+      return sleep(2500);
+    }).then(() => {
+      promise(el);
+    });
+  }
+
+  async function asyncawait(el) {
+    green(el);
+    await sleep(5000);
+    yellow(el);
+    await sleep(1000);
+    red(el);
+    await sleep(2500);
+    asyncawait(el);
+  }
+
+  function* generator(el) {
+    green(el);
+    yield sleep(5000);
+    yellow(el);
+    yield sleep(1000);
+    red(el);
+    yield sleep(2500);
+    generator(el);
+  }
+
+  function run(iterator) {
+    let {value, done} = iterator.next();
+    if (done) return;
+    if (value instanceof Promise) {
+      value.then(() => {
+        run(iterator);
+      })
+    }
+  }
+
+  function co(generator) {
+    return function(el) {
+      return run(generator(el));
+    }
+  }
+
+  generator = co(generator);
+
+  go('cb');
+  go('promise');
+  go('asyncawait');
+  go('generator');
+
+  //! async generator
+  async function* counter() {
+    let i = 0;
+    while(true) {
+      await sleep(1000);
+      yield i++;
+    }
+  }
+
+  (async function() {
+    for await(let i of counter()) {
+      console.log(i);
+    }
+  })();
+</script>
+</html>
