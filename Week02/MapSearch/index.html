@@ -1,0 +1,279 @@
+<style>
+  #container {
+    width: 701px;
+  }
+  .cell {
+    display: inline-block;
+    line-height: 7px;
+    width: 6px;
+    height: 6px;
+    background-color: grey;
+    border-bottom: 1px solid white;
+    border-right: 1px solid white;
+    vertical-align: middle;
+  }
+</style>
+<div id="container"></div>
+<button onclick="localStorage.setItem('map', JSON.stringify(map))">保存</button>
+<script>
+  // winner tree
+  // heap堆
+  class Sorted {
+    constructor(data, compare) {
+      this.data = data.slice();
+      this.compare = compare || ((a, b) => a - b);
+    }
+    take() {
+      if (!this.data.length) return;
+      let min = this.data[0];
+      let minIndex = 0;
+
+      for(let i = 1; i < this.data.length; i++) {
+        if (this.compare(this.data[i], min) < 0) {
+          min = this.data[i];
+          minIndex = i;
+        }
+      }
+
+      //! splice操作的时间杂度为O(n)
+      this.data[minIndex] = this.data[this.data.length - 1];
+      this.data.pop();
+      return min;
+    }
+    give(item) {
+      this.data.push(item);
+    }
+    get length() {
+      return this.data.length;
+    }
+  }
+
+  // 二叉堆 堆顶永远最小
+  class BinaryHeap {
+    constructor(data, compare) {
+      this.compare = compare || ((a, b) => a - b);
+      // 创建时即保证堆顶为最小
+      const d = [];
+      data.forEach(item => {
+        this.give(item, d);
+      });
+      this.data = d;
+    }
+    give(v, d) {
+      d = d || this.data;
+      this.insertAt(d.length, v, d);
+    }
+    insertAt(i, v, d) {
+      d = d || this.data;
+      d[i] = v;
+      // 自下而上
+      while(i > 0 && this.compare(v, d[Math.floor((i - 1) / 2)]) < 0) {
+        d[i] = d[Math.floor((i - 1) / 2)];
+        d[Math.floor((i - 1) / 2)] = v;
+        i = Math.floor((i - 1) / 2);
+      }
+    }
+    take() {
+      // 永远取第一个元素，剩余的做一次自顶向下排序
+      if (!this.data.length) return;
+      let min = this.data[0];
+      let i = 0;
+      const len = this.data.length;
+      while(i < len) {
+        if (i * 2 + 1 >= len) break;
+        if (i * 2 + 2 === len) {
+          this.data[i] = this.data[i * 2 + 1];
+          i = i * 2 + 1;
+          break;
+        }
+        if (this.compare(this.data[i * 2 + 1], this.data[i * 2 + 2]) < 0) {
+          this.data[i] = this.data[i * 2 + 1];
+          i = i * 2 + 1;
+        } else {
+          this.data[i] = this.data[i * 2 + 2];
+          i = i * 2 + 2;
+        }
+      }
+      if (i < this.data.length - 1) {
+        this.insertAt(i, this.data.pop(), this.data);
+      } else {
+        this.data.pop();
+      }
+      return min;
+    }
+    get length() {
+      return this.data.length;
+    }
+  }
+
+  // 神奇的结构!!!
+  // let bh = new BinaryHeap([2, 5, 8, 4, 6, 1, 7]);
+  // console.log(bh.data);
+  // bh.give(3);
+  // console.log(bh.data);
+  // console.log(bh.take());
+  // console.log(bh.data);
+  // console.log(bh.take());
+  // console.log(bh.data);
+  // console.log(bh.take());
+  // console.log(bh.data);
+  // console.log(bh.take());
+  // console.log(bh.data);
+
+  const map = localStorage.getItem('map') ? JSON.parse(localStorage.getItem('map')) : new Array(100 * 100).fill(0);
+  const container = document.getElementById('container');
+  let mousedown = false;
+  let clear = false;
+  for(let y = 0; y < 100; y++) {
+    for(let x = 0; x < 100; x++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.title = x + ', ' + y;
+      if (map[100 * y + x] === 1) {
+        cell.style.backgroundColor = 'black';
+      }
+      cell.addEventListener('mousemove', () => {
+        if (mousedown) {
+          if (clear) {
+            if (map[100 * y + x] !== 0) {
+              cell.style.backgroundColor = 'grey';
+              map[100 * y + x] = 0;
+            }
+          } else {
+            if (map[100 * y + x] === 0) {
+              cell.style.backgroundColor = 'black';
+              map[100 * y + x] = 1;
+            }
+          }
+        }
+      });
+      container.appendChild(cell);
+    }
+  }
+  window.addEventListener('mousedown', (e) => {
+    mousedown = true;
+    clear = e.which === 3;
+  });
+  window.addEventListener('mouseup', () => {
+    mousedown = false;
+  });
+  window.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+
+  const sleep = (time) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(resolve, time);
+    });
+  };
+
+  const findPath = async (map, start, end) => {
+    container.children[end[1] * 100 + end[0]].style.backgroundColor = 'red';
+
+    // 欧几里得距离
+    // const distanceToEnd = (point) => {
+    //   const dx = point[0] - end[0];
+    //   const dy = point[1] - end[1];
+    //   return dx ** 2 + dy ** 2;
+    // }
+    // const distanceToStart = (point) => {
+    //   const dx = point[0] - start[0];
+    //   const dy = point[1] - start[1];
+    //   return dx ** 2 + dy ** 2;
+    // }
+
+    // 横纵斜向
+    const distanceToEnd = (point) => {
+      const dx = Math.abs(point[0] - end[0]);
+      const dy = Math.abs(point[1] - end[1]);
+      return (dx + dy) + (Math.sqrt(2) - 2) * Math.min(dx, dy);
+    }
+    const distanceToStart = (point) => {
+      const dx = Math.abs(point[0] - start[0]);
+      const dy = Math.abs(point[1] - start[1]);
+      return (dx + dy) + (Math.sqrt(2) - 2) * Math.min(dx, dy);
+    }
+
+    // 横纵向
+    /* const distanceToEnd = (point) => {
+      const dx = Math.abs(point[0] - end[0]);
+      const dy = Math.abs(point[1] - end[1]);
+      return dx + dy;
+    }
+    const distanceToStart = (point) => {
+      const dx = Math.abs(point[0] - start[0]);
+      const dy = Math.abs(point[1] - start[1]);
+      return dx + dy;
+    } */
+
+    const tempMap = Object.create(map);
+
+    // const queue = [start];
+    // const queue = new Sorted([start], (a, b) => distanceToEnd(a) - distanceToEnd(b));
+    const queue = new BinaryHeap([start], (a, b) => distanceToEnd(a) - distanceToEnd(b));
+
+    if (tempMap[100 * end[1] + end[0]]) {
+      return null;
+    }
+
+    async function insert(x, y, pre, step) {
+      if (x < 0 || x >= 100 || y < 0 || y >= 100) return;
+      if (tempMap[100 * y + x]) {
+        let v = tempMap[100 * y + x];
+        // if (v) return;
+        if (v === 1) return;
+        // 判断已经走过的步骤
+        if (v.step <= step) {
+          return;
+        }
+        else {
+          tempMap[100 * y + x] = {
+            pre,
+            step
+          };
+          return;
+        }
+      }
+      // await sleep(10);
+      container.children[y * 100 + x].style.backgroundColor = 'lightgreen';
+      tempMap[100 * y + x] = {
+        pre,
+        step
+      };
+      queue.give([x, y]);
+    }
+
+    // 插入start点
+    await insert(start[0], start[1], null, 0);
+
+    while(queue.length) {
+      let [x, y] = queue.take();
+      const step = tempMap[100 * y + x].step;
+      if (x === end[0] && y === end[1]) {
+        let path = [];
+        while(x !== start[0] || y !== start[1]) {
+          path.push([x, y]);
+          [x, y] = tempMap[y * 100 + x].pre;
+
+          await sleep(10);
+          container.children[y * 100 + x].style.backgroundColor = 'purple';
+        }
+        return path;
+      }
+      await insert(x + 1, y, [x, y], step + 1);
+      await insert(x + 1, y + 1, [x, y], step + 1);
+      await insert(x, y + 1, [x, y], step + 1);
+      await insert(x - 1, y + 1, [x, y], step + 1);
+      await insert(x - 1, y, [x, y], step + 1);
+      await insert(x - 1, y - 1, [x, y], step + 1);
+      await insert(x, y - 1, [x, y], step + 1);
+      await insert(x + 1, y - 1, [x, y], step + 1);
+      /* await insert(x, y - 1, [x, y], step + 1);
+      await insert(x + 1, y, [x, y], step + 1);
+      await insert(x, y + 1, [x, y], step + 1);
+      await insert(x - 1, y, [x, y], step + 1); */
+    }
+    return null;
+  }
+  // findPath(map, [0,0], [50,50])
+</script>
