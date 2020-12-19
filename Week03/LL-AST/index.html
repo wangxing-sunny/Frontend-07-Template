@@ -1,0 +1,285 @@
+<script>
+  let regexp = /([0-9]+)|([\s\t]+)|([\r\n]+)|(\*)|(\/)|(\+)|(\-)/g;
+  // let regexp = new RegExp(/([0-9]+)|([\s\t]+)|([\r\n]+)|(\*)|(\/)|(\+)|(\-)/, 'y');
+  const dictionary = ['Number', 'Whitespace', 'LineTerminator', '*', '/', '+', '-'];
+  const MULTIPLICATIVE_EXPRESSION = 'MultiplicativeExpression';
+  const ADDITIVE_EXPRESSION = 'AdditiveExpression';
+  function* tokenize(source) {
+    let lastIndex = 0;
+    let result = null;
+    while(true) {
+      lastIndex = regexp.lastIndex;
+      result = regexp.exec(source);
+      if (!result) break;
+      // 无法匹配的字符
+      if (regexp.lastIndex - lastIndex > result[0].length) break;
+      let token = {
+        type: null,
+        value: '',
+      }
+      const l = dictionary.length;
+      for(let i = 1; i <= l; i++) {
+        if (result[i]) token.type = dictionary[i - 1];
+      }
+      token.value = result[0];
+      yield token;
+    }
+    yield {
+      type: 'EOF',
+    }
+  }
+
+  const tokens = [];
+  // const expression = '1024 / 16 * 4 / 8 + 10 * 2 - 5 - 23 * 2';
+  // const expression = '1024 / 16 * 3 + 4';
+  const expression = '1024 - 5 + 16 * 3 - 4';
+  console.log('expression => ', expression);
+  for(let token of tokenize(expression)) {
+    if (token.type !== 'Whitespace' && token.type !== 'LineTerminator')
+      tokens.push(token);
+  };
+
+  //! origin code 
+  /*function Expression(source) {
+    const ast = JSON.parse(JSON.stringify(source));
+    function MultiplicativeExpression(source) {
+      if (source[0].type === 'Number') {
+        let node = {
+          type: MULTIPLICATIVE_EXPRESSION,
+          children: [source[0]],
+        }
+        source[0] = node;
+        return MultiplicativeExpression(source);
+      }
+      if (
+        source[0].type === MULTIPLICATIVE_EXPRESSION
+        && source[1]
+        && (source[1].type === '*' || source[1].type === '/')
+      ) {
+        let node = {
+          type: MULTIPLICATIVE_EXPRESSION,
+          operator: source[1].value,
+          children: [],
+        };
+        node.children.push(source.shift());
+        source.shift();
+        node.children.push(source.shift());
+        source.unshift(node);
+        return MultiplicativeExpression(source);
+      }
+      if (source[0].type === MULTIPLICATIVE_EXPRESSION) {
+        return source[0];
+      }
+      return MultiplicativeExpression(source);
+    }
+    // console.log(MultiplicativeExpression(tokens));
+    function AdditiveExpression(source) {
+      if (source[0].type === MULTIPLICATIVE_EXPRESSION) {
+        let node = {
+          type: ADDITIVE_EXPRESSION,
+          children: [source[0]],
+        };
+        source[0] = node;
+        return AdditiveExpression(source);
+      }
+      if (
+        source[0].type === ADDITIVE_EXPRESSION
+        && source[1]
+        && (source[1].type === '+' || source[1].type === '-')
+      ) {
+        let node = {
+          type: ADDITIVE_EXPRESSION,
+          operator: source[1].value,
+          children: [],
+        };
+        node.children.push(source.shift());
+        source.shift();
+        MultiplicativeExpression(source);
+        node.children.push(source.shift());
+        source.unshift(node);
+        return AdditiveExpression(source);
+      }
+      if (source[0].type === ADDITIVE_EXPRESSION) {
+        return source[0];
+      }
+      MultiplicativeExpression(source);
+      return AdditiveExpression(source);
+    }
+    // console.log(AdditiveExpression(tokens));
+    if (
+      ast[0].type === ADDITIVE_EXPRESSION
+      && ast[1]
+      && ast[1].type === 'EOF'
+    ) {
+      let node = {
+        type: 'Expression',
+        children: [ast.shift(), ast.shift()],
+      };
+      ast.unshift(node);
+      return node;
+    }
+    AdditiveExpression(ast);
+    return Expression(ast);
+  }
+
+  console.log('Expression => ', Expression(tokens));*/
+
+  /**
+   * 我理解的产生式
+   * <AdditiveExpression> ::=
+   *  <Number>+<Number>
+   *  <Number>-<Number>
+   *  <Number>+<MultiplicativeExpression>
+   *  <Number>-<MultiplicativeExpression>
+   *  <MultiplicativeExpression>+<Number>
+   *  <MultiplicativeExpression>-<Number>
+   *  <MultiplicativeExpression>+<MultiplicativeExpression>
+   *  <MultiplicativeExpression>-<MultiplicativeExpression>
+   *  <AdditiveExpression>+<Number>
+   *  <AdditiveExpression>-<Number>
+   *  <AdditiveExpression>+<MultiplicativeExpression>
+   *  <AdditiveExpression>-<MultiplicativeExpression>
+
+   * <MultiplicativeExpression> ::=
+   *  <Number>*<Number>
+   *  <Number>/<Number>
+   *  <MultiplicativeExpression>*<Number>
+   *  <MultiplicativeExpression>/<Number>
+   */
+  function Expression(source) {
+    const ast = JSON.parse(JSON.stringify(source));
+    function MultiplicativeExpression(source) {
+      if (
+        (source[0].type === 'Number' || source[0].type === MULTIPLICATIVE_EXPRESSION)
+        && source[1]
+        && (source[1].type === '*' || source[1].type === '/')
+      ) {
+        let node = {
+          type: MULTIPLICATIVE_EXPRESSION,
+          operator: source[1].value,
+          children: [],
+        }
+        node.children.push(source.shift());
+        source.shift();
+        node.children.push(source.shift());
+        source.unshift(node);
+        MultiplicativeExpression(source);
+      }
+    }
+    function AdditiveExpression(source) {
+      if (
+        (source[0].type === 'Number' || source[0].type === MULTIPLICATIVE_EXPRESSION || source[0].type === ADDITIVE_EXPRESSION)
+        && source[1]
+        && (source[1].type === '+' || source[1].type === '-')
+       ) {
+        let node = {
+          type: ADDITIVE_EXPRESSION,
+          operator: source[1].value,
+          children: [],
+        };
+        node.children.push(source.shift());
+        source.shift();
+        MultiplicativeExpression(source);
+        node.children.push(source.shift());
+        source.unshift(node);
+        AdditiveExpression(source);
+      } else {
+        MultiplicativeExpression(source);
+      }
+    }
+    AdditiveExpression(ast);
+
+    if (ast[1] && ast[1].type === 'EOF') {
+      let node = {
+        type: 'Expression',
+        children: [ast.shift(), ast.shift()],
+      };
+      ast.unshift(node);
+      return node;
+    } else {
+      return Expression(ast);
+    }
+  }
+
+  const ast1 = Expression(tokens);
+  console.log('Expression => ', ast1);
+
+  // 自己思考的一个表达式解析。
+  // 非LL分析
+  // 不考虑错误表达式
+  // 按照四则运算优先级，先处理乘法，再处理加法
+  // 这样最底层操作符只会是Number
+  function MyExpression(source) {
+    const ast = JSON.parse(JSON.stringify(source));
+    function MyMultiplicativeExpression(source) {
+      let len = source.length;
+      for(let i = 0; i < len; i++) {
+        if (source[i].type === '*' || source[i].type === '/') {
+          let node = {
+            type: 'MultiplicativeExpression',
+            operator: source[i].value,
+            children: [],
+          };
+          node.children.push(source[i - 1]);
+          node.children.push(source[i + 1]);
+          source.splice(i - 1, 3, node);
+          i--;
+          len -= 2;
+        }
+      }
+      return source;
+    }
+
+    function MyAdditiveExpression(source) {
+      let len = source.length;
+      for(let i = 0; i < len; i++) {
+        if (source[i].type === '+' || source[i].type === '-') {
+          let node = {
+            type: 'AdditiveExpression',
+            operator: source[i].value,
+            children: [],
+          };
+          node.children.push(source[i - 1]);
+          node.children.push(source[i + 1]);
+          source.splice(i - 1, 3, node);
+          i--;
+          len -= 2;
+        }
+      }
+      return source;
+    }
+    // 没有括号的情况下，乘除法优先
+    MyMultiplicativeExpression(ast);
+    // console.log('MyMultiplicativeExpression => ', ast);
+    MyAdditiveExpression(ast)
+    // console.log('MyAdditiveExpression => ', ast);
+
+    let node = {
+      type: 'Expression',
+      children: [ast.shift()],
+    };
+    return node;
+  }
+
+  const ast2 = MyExpression(tokens);
+  console.log('MyExpression => ', ast2);
+
+  // 解析ast，递归
+  // 转换为类似函数调用的形式
+  // '1024 - 5 + 16 * 3 - 4' => subtract(plus(subtract(1024, 5), multiply(16, 3)), 4)
+  function codeGen(node) {
+    switch(node.type) {
+      case 'Number':
+        return node.value;
+      case MULTIPLICATIVE_EXPRESSION:
+      case ADDITIVE_EXPRESSION:
+        const method = ['plus', 'subtract', 'multiply', 'divide'][['+', '-', '*', '/'].indexOf(node.operator)];
+        return `${method}(${codeGen(node.children[0])}, ${codeGen(node.children[1])})`;
+      case 'Expression':
+        return codeGen(node.children[0]);
+    }
+  }
+
+  console.log('codeGen ast1 => ', codeGen(ast1));
+  console.log('codeGen ast2 => ', codeGen(ast2));
+</script>
