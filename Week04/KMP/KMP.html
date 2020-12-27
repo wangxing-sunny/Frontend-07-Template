@@ -1,0 +1,69 @@
+<script>
+  function pt(pattern) {
+    const table = [0, 0];
+    let i = 1, j = 0;
+    while(i < pattern.length) {
+        if (pattern[i] === pattern[j]) {
+            i++;j++;
+            table[i] = j;
+        } else {
+            if (j > 0) {
+                j = table[j];
+            } else {
+                i++;
+            }
+        }
+    }
+    return table;
+  }
+  function ptWithQuestionMark(pattern) {
+    
+  }
+
+  function kmp(source, pattern) {
+    if (!pattern.length) return 0;
+    // 计算前缀表
+    const prefixTable = new Array(pattern.length).fill(0);
+    {
+      // 局部代码块
+      let i = 2;
+      let match = 0; // 指的是位置i公共前后缀的长度
+      while(i < pattern.length) {
+        if (pattern[i - 1] === pattern[match]) {
+          match++;
+          prefixTable[i] = match;
+          i++;
+        } else {
+          if (match > 0) {
+            match = prefixTable[match];
+          } else {
+            i++;
+          }
+        }
+      }
+    }
+    console.log(prefixTable);
+
+    {
+      let i = 0; // source索引
+      let j = 0; // pattern索引
+      while(i < source.length) {
+        if (source[i] === pattern[j]) {
+          i++;
+          j++;
+        } else {
+          if (j > 0) {
+            j = prefixTable[j];
+          } else {
+            i++;
+          }
+        }
+        if (j === pattern.length) return i - pattern.length;
+      }
+      return -1;
+    }
+  }
+  console.log(kmp('hello', 'll'));
+  console.log(kmp('hello', 'llx'));
+  console.log(kmp('asabcabababcdad', 'abcabababc'));
+</script>
