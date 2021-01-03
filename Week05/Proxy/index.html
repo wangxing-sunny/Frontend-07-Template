@@ -1,0 +1,84 @@
+<input id="r" type="range" min="0" max="255" />
+<input id="g" type="range" min="0" max="255" />
+<input id="b" type="range" min="0" max="255" />
+<input id="a" type="range" min="0" max="1" step="0.001" />
+<div id="color" style="width: 50px;height: 50px;"></div>
+<script>
+  // 缓存reactive的对象
+  const reactiveMap = new Map();
+
+  // const callbacks = [];
+  const callbacks = new Map();
+
+  let deps = [];
+
+  const obj = {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 1,
+  };
+
+  let p = reactive(obj);
+
+  effect(() => {
+    document.getElementById('r').value = p.r;
+  });
+  effect(() => {
+    document.getElementById('g').value = p.g;
+  });
+  effect(() => {
+    document.getElementById('b').value = p.b;
+  });
+  effect(() => {
+    document.getElementById('a').value = p.a;
+  });
+
+  effect(() => {
+    document.getElementById('color').style.backgroundColor = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.a})`;
+  });
+
+  document.getElementById('r').addEventListener('input', e => p.r = e.target.value);
+  document.getElementById('g').addEventListener('input', e => p.g = e.target.value);
+  document.getElementById('b').addEventListener('input', e => p.b = e.target.value);
+  document.getElementById('a').addEventListener('input', e => p.a = e.target.value);
+
+  function effect(callback) {
+    // callbacks.push(callback);
+    deps = [];
+    callback();
+    for(let dep of deps) {
+      if (!callbacks.has(dep[0])) {
+        callbacks.set(dep[0], new Map());
+      }
+      if (!callbacks.get(dep[0]).has(dep[1])) {
+        callbacks.get(dep[0]).set(dep[1], []);
+      }
+      callbacks.get(dep[0]).get(dep[1]).push(callback);
+    }
+  }
+
+  function reactive(object) {
+    if (reactiveMap.has(object)) return reactiveMap.get(object);
+    let proxyed = new Proxy(object, {
+      set(target, prop, value) {
+        const oldValue = Reflect.get(target, prop);
+        const result = Reflect.set(target, prop, value);
+        if (callbacks.get(target) && callbacks.get(target).get(prop)) {
+          for(let cb of callbacks.get(target).get(prop)) {
+            cb();
+          }
+        }
+        return result;
+      },
+      get(target, prop) {
+        deps.push([target, prop]);
+        const result = Reflect.get(target, prop);
+        if (result && typeof result === "object") return reactive(result);
+        return result;
+      }
+    });
+    reactiveMap.set(object, proxyed);
+    return proxyed;
+  }
+</script>
