@@ -19,8 +19,8 @@ exec() 方法在一个指定字符串中执行一个搜索匹配。返回一个�
 
 > 第二个步骤是 `语法分析(syntax analysis)` 或者称为 `解析(parsing)`。语法分析器使用由词法分析器生成的各个词法单元的第一个分量来创建树形的中间表示。常用的方法就是 `语法树(syntax tree)`。编译器的后续步骤都会使用这个语法结构来帮助分析源程序，并声称目标程序。
 
-* 产生式：定义的推导规则，就是从非终结符出发去构造串的方法。定义了非终结符的分解规则
-* 终结符：和非终结符相对应，可以叫做是"语法常量"，已经被完全确定下来了
+* 产生式：定义的推导规则，就是从非终结符出发去构造串的方法。定义了非终结符的分解规则。在计算机中指 Tiger 编译器将源程序经过词法分析（Lexical Analysis）和语法分析（Syntax Analysis）后得到的一系列符合文法规则的语句
+* 终结符：和非终结符相对应，可以叫做是"语法常量"，已经被完全确定下来了，不能单独出现在推导式左边的符号
 * 非终结符："语法变量"。在识别或者产生的过程中，如果该符号还未确定下来，还可以被继续推导，那么就是非终结符。
 
 #### LL(k)分析算法
@@ -32,29 +32,41 @@ exec() 方法在一个指定字符串中执行一个搜索匹配。返回一个�
 
 * 巴科斯范式(BNF: Backus-Naur Form)
 
+巴科斯范式是一种用于表示上下文无关文法的语言：
+
+* 用尖括号括起来的名称来表示语法结构名称
+* 语法结构分成基础结构和需要用其他语法结构定义的复合结构
+  * 基础结构为终结符
+  * 复合结构为非终结符
+* 引号和中间的字符表示终结符
+* 可以有括号
+* *表示重复多次
+* |表示或
+* +表示至少一次
+
 产生式
 
 ```
 <AdditiveExpression> ::=
-  <MultiplicativeExpression>
-  <AdditiveExpression>(+|-)<MultiplicativeExpression>
+  <MultiplicativeExpression>|
+  <AdditiveExpression>("+"|"-")<MultiplicativeExpression>
 
 <MultiplicativeExpression> ::=
-  <Number>
-  <MultiplicativeExpression>(*|/)<Number>
+  <Number>|
+  <MultiplicativeExpression>("*"|"/")<Number>
 ```
 
 个人理解的四则运算产生式
 ```
 <AdditiveExpression> ::=
-  <Number>(+|-)<Number>
-  <Number>(+|-)<MultiplicativeExpression>
-  <MultiplicativeExpression>(+|-)<Number>
-  <MultiplicativeExpression>(+|-)<MultiplicativeExpression>
-  <AdditiveExpression>(+|-)<Number>
+  <Number>(+|-)<Number>|
+  <Number>(+|-)<MultiplicativeExpression>|
+  <MultiplicativeExpression>(+|-)<Number>|
+  <MultiplicativeExpression>(+|-)<MultiplicativeExpression>|
+  <AdditiveExpression>(+|-)<Number>|
   <AdditiveExpression>(+|-)<MultiplicativeExpression>
 
 <MultiplicativeExpression> ::=
-  <Number>(*|/)<Number>
+  <Number>(*|/)<Number>|
   <MultiplicativeExpression>(*|/)<Number>
 ```
