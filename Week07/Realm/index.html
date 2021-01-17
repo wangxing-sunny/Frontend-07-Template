@@ -1,0 +1,70 @@
+<div id="main" style="width: 100%;height: 100%;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.0.0/echarts.min.js"></script>
+<script>
+  let myChart = window.echarts.init(document.getElementById('main'));
+  var data = {
+    name: "Realm",
+    children: [
+      {
+        name: "宿主对象",
+        children: [
+          { name: "Window" },
+          { name: "Document" },
+        ]
+      },
+      {
+        name: "本地对象",
+        children: [
+          { name: "Object" },
+          { name: "Array" },
+          { name: "Date" },
+          { name: "RegExp" },
+          { name: "Function" },
+          { name: "Boolean" },
+          { name: "Number" },
+          { name: "String" }
+        ]
+      },
+      {
+        name: "内置对象",
+        children: [
+          { name: "Global" },
+          { name: "Math" },
+          { name: "JSON" },
+          { name: "Reflect" },
+        ]
+      }
+    ]
+  };
+  myChart.setOption(option = {
+    tooltip: {
+      trigger: 'item',
+      triggerOn: 'mousemove'
+    },
+    series:[{
+      type: 'tree',
+      name: 'tree2',
+      data: [data],
+      top: '20%',
+      left: '10%',
+      bottom: '20%',
+      right: '10%',
+      symbolSize: 5,
+      label: {
+        position: 'left',
+        verticalAlign: 'middle',
+        align: 'right'
+      },
+      leaves: {
+        label: {
+          position: 'right',
+          verticalAlign: 'middle',
+          align: 'left'
+        }
+      },
+      expandAndCollapse: true,
+      animationDuration: 550,
+      animationDurationUpdate: 750
+    }]
+  });
+</script>

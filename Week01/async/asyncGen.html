@@ -1,0 +1,40 @@
+<script>
+  function sleep(time) {
+    return new Promise((res) => {
+      setTimeout(() => res(), time);
+    });
+  }
+
+  function ref(val) {
+    let obj = {};
+    Object.defineProperty(obj, 'value', {
+      get() {
+        return val;
+      },
+      set(v) {
+        val = v;
+        console.log(v);
+      }
+    });
+    return obj;
+  }
+
+  let i = ref(10);
+
+  //! async generator
+  async function* counter() {
+    while(i.value > 0) {
+      await sleep(1000);
+      yield i.value--;
+    }
+  }
+
+
+  async function run() {
+    for await(let n of counter()) {
+      console.log(n);
+    }
+  }
+
+  run();
+</script>
