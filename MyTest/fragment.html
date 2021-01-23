@@ -1,0 +1,27 @@
+<div id="d1"></div>
+<div id="d2">
+  <p id="p2-1">t2-1</p>
+  <p id="p2-2">t2-2</p>
+  <p id="p2-3">t2-3</p>
+</div>
+<div id="d3">
+  <p id="p3-1">t3-1</p>
+</div>
+<div id="d4">
+  <p id="p4-1">t4-1</p>
+  <p id="p4-2">t4-2</p>
+</div>
+<div id="d5">t5</div>
+<button id="btn">点我</button>
+<script>
+  function click() {
+    const fragment = document.createDocumentFragment();
+    fragment.append(document.querySelector("#p2-1"));
+    fragment.append(document.querySelector("#p3-1"));
+    fragment.append(document.querySelector("#p4-2"));
+    fragment.append(document.querySelector("#d5"));
+
+    document.querySelector('#d1').appendChild(fragment);
+  }
+  document.querySelector('#btn').addEventListener('click', click)
+</script>

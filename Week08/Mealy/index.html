@@ -1,0 +1,248 @@
+<script>
+  //! 不使用状态机
+  // 找到字符 'a'
+  function findA(s) {
+    for(let c of s) {
+      if (c === 'a') return true;
+    }
+    return false;
+  }
+  // 找到连续的 'ab'
+  function findAB(s) {
+    let findA = false;
+    for(let c of s) {
+      if (c === 'a') {
+        findA = true;
+      } else if(findA && c === 'b') {
+        return true;
+      } else {
+        findA = false;
+      }
+    }
+    return false;
+  }
+  function findABC(s) {
+    let findA = false;
+    let findB = false;
+    for(let c of s) {
+      if (c === 'a') {
+        findA = true;
+      } else if (findA && c === 'b') {
+        findB = true;
+      } else if (findB && c === 'c') {
+        return true;
+      } else {
+        findA = findB = false;
+      }
+    }
+    return false;
+  }
+</script>
+<script>
+  // 使用有限状态机
+  {
+    // 查找abc
+    function match(s) {
+      let state = start;
+      for(let c of s) {
+        state = state(c);
+      }
+      return state === end;
+    }
+    function start(c) {
+      if (c === 'a') {
+        return foundA;
+      } else {
+        return start;
+      }
+    }
+    function foundA(c) {
+      if (c === 'b') {
+        return foundB;
+      } else {
+        return start(c);
+      }
+    }
+    function foundB(c) {
+      if (c === 'c') {
+        return end;
+      } else {
+        return start(c);
+      }
+    }
+    function end() {
+      return end;
+    }
+    console.log(match('defgabcdefg'));
+    console.log(match('abdabe'));
+  }
+  {
+    // 查找 abcabx
+    function match(s) {
+      let state = start;
+      for (let c of s) {
+        state = state(c);
+      }
+      return state === end;
+    }
+    function start(c) {
+      if (c === 'a') {
+        return foundA;
+      } else {
+        return start;
+      }
+    }
+    function foundA(c) {
+      if (c === 'b') {
+        return foundB;
+      } else {
+        return start(c);
+      }
+    }
+    function foundB(c) {
+      if (c === 'c') {
+        return foundC;
+      } else {
+        return start(c);
+      }
+    }
+    function foundC(c) {
+      if (c === 'a') {
+        return foundA2;
+      } else {
+        return start(c);
+      }
+    }
+    function foundA2(c) {
+      if (c === 'b') {
+        return foundB2;
+      } else {
+        return start(c);
+      }
+    }
+    function foundB2(c) {
+      if (c === 'x') {
+        return end;
+      } else {
+        return foundB(c);
+      }
+    }
+    function end() {
+      return end;
+    }
+    console.log(match('abcabcabx'))
+    console.log(match('abcabcabc'))
+  }
+  {
+    // 查找 abababx
+    function match(s) {
+      let state = start;
+      for (let c of s) {
+        state = state(c);
+      }
+      return state === end;
+    }
+    function start(c) {
+      if (c === 'a') {
+        return foundA;
+      } else {
+        return start;
+      }
+    }
+    function foundA(c) {
+      if (c === 'b') {
+        return foundB;
+      } else {
+        return start(c);
+      }
+    }
+    function foundB(c) {
+      if (c === 'a') {
+        return foundA2;
+      } else {
+        return start(c);
+      }
+    }
+    function foundA2(c) {
+      if (c === 'b') {
+        return foundB2;
+      } else {
+        return start(c);
+      }
+    }
+    function foundB2(c) {
+      if (c === 'a') {
+        return foundA3;
+      } else {
+        return start(c);
+      }
+    }
+    function foundA3(c) {
+      if (c === 'b') {
+        return foundB3;
+      } else {
+        return start(c);
+      }
+    }
+    function foundB3(c) {
+      if (c === 'x') {
+        return end;
+      } else {
+        return foundB2(c);
+      }
+    }
+    function end() {
+      return end;
+    }
+    console.log(match('abababx'));
+    console.log(match('abcabababc'));
+  }
+  {
+    // 未知pattern
+    function kmp_table(pattern) {
+      let state_table = new Array(pattern.length).fill(0);
+      let pos = 0;
+      for (let index = 1; index < pattern.length; index++) {
+        if (pattern[index] === pattern[pos]) {
+          pos++;
+          state_table[index] = pos;
+        } else {
+          pos = pos > 0 ? state_table[pos] : 0;
+        }
+      }
+      console.log(state_table);
+      return state_table;
+    }
+    function kmp(pattern, s) {
+      const kt = kmp_table(pattern);
+      const states = [];
+      function start(c) {
+        if (c === pattern[0]) {
+          return states[0]
+        } else {
+          return start;
+        }
+      }
+      for(let index = 1; index < pattern.length; index++) {
+        const next = pattern[index];
+        states[index - 1] = (c) => {
+          if (c === next) {
+            return index === pattern.length - 1 ? end : states[index];
+          } else {
+            return index === 1 ? start(c) : states[kt[index - 1] > 0 ? kt[index - 1] - 1 : 0](c);
+          }
+        }
+      };
+      function end() {
+        return end;
+      }
+      let state = start;
+      for(let c of s) {
+        state = state(c);
+      }
+      return state === end;
+    }
+    console.log(kmp('abababc', 'abababxababababc'));
+    console.log(kmp('abababx', 'aabababababcxx'));
+  }
+</script>
